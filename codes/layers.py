@@ -104,7 +104,7 @@ class Conv2D(Layer):
         super(Conv2D, self).__init__(name, trainable=True)
         self.kernel_size = kernel_size
         self.pad = pad
-        self.W = np.random.randn(out_channel, in_channel, kernel_size, kernel_size)
+        self.W = np.random.randn(out_channel, in_channel, kernel_size, kernel_size) * init_std
         self.b = np.zeros(out_channel)
 
         self.diff_W = np.zeros(self.W.shape)

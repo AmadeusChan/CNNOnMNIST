@@ -13,6 +13,10 @@ def conv2d_forward(input, W, b, kernel_size, pad):
     Returns:
         output: shape = n (#sample) x c_out (#output channel) x h_out x w_out,
             where h_out, w_out is the height and width of output, after convolution
+
+    note that:
+        h_out = h_in + 2 x pad - kernel + 1
+        w_out = w_in + 2 x pad - kernel + 1
     '''
     pass
 
