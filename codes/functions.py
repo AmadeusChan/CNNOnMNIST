@@ -22,6 +22,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
         w_out = w_in + 2 x pad - kernel + 1
     '''
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+    print input
 
     N, c_in, h_in, w_in = input.shape
     c_out = W.shape[0]

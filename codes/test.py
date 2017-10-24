@@ -1,23 +1,24 @@
 import numpy as np
 import functions
 
-input = np.arange(150).reshape(2,3,5,5)
-W = np.arange(60).reshape(5,3,2,2)
-b = np.arange(5)
-k = 2
+n = 1
+c_in = 1
+c_out = 4
+h_in = 3
+w_in = 3
 pad = 2
+k = 5
 
-a = np.arange(32).reshape(2,2,2,4)
-print a
-print functions.avgpool2d_forward(a, 2, 2)
+input = np.arange(n * c_in * h_in * w_in).reshape(n, c_in, h_in, w_in)
+W = np.arange(c_out * c_in * k * k).reshape(c_out, c_in, k, k)
+b = np.zeros(shape=(c_out))
 
-'''
-print functions.conv2d_forward(input, W, b, k, pad)
-print '------'
-print functions.conv_forward(input, W, b, k, pad)
-'''
+print input
+print W
+print b
 
-'''
-output = np.arange(640).reshape(2, 5, 8, 8)
-print functions.conv2d_backward(input, output, W, b, k, pad)
-'''
+output = functions.conv2d_forward(input, W, b, k, pad)
+print output
+
+print functions.conv2d_backward(input, np.log(output), W, b, k, pad)
+
