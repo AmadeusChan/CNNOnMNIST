@@ -1,6 +1,8 @@
 from utils import LOG_INFO, onehot_encoding, calculate_acc
 import numpy as np
 
+import utils
+
 
 def data_iterator(x, y, batch_size, shuffle=True):
     indx = range(len(x))
@@ -17,6 +19,8 @@ def train_net(model, loss, config, inputs, labels, batch_size, disp_freq):
     iter_counter = 0
     loss_list = []
     acc_list = []
+
+    utils.check.init()
 
     for input, label in data_iterator(inputs, labels, batch_size):
         target = onehot_encoding(label, 10)
@@ -42,7 +46,12 @@ def train_net(model, loss, config, inputs, labels, batch_size, disp_freq):
             msg = '  Training iter %d, batch loss %.4f, batch acc %.4f' % (iter_counter, np.mean(loss_list), np.mean(acc_list))
             loss_list = []
             acc_list = []
+
+	    cf, cb, pf, pb = utils.check.get()
+	    msg = msg + ', convolution forward: %.2fs  convolution backward: %.2fs  pooling: %.2fs' % (cf, cb, pf + pb)
+
             LOG_INFO(msg)
+	    utils.check.init()
 
 
 def test_net(model, loss, inputs, labels, batch_size):

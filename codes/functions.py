@@ -4,6 +4,8 @@ from scipy import signal
 import skimage.measure
 import scipy.ndimage
 
+import utils
+
 def conv2d_forward(input, W, b, kernel_size, pad):
     '''
     Args:
@@ -21,6 +23,8 @@ def conv2d_forward(input, W, b, kernel_size, pad):
         h_out = h_in + 2 x pad - kernel + 1
         w_out = w_in + 2 x pad - kernel + 1
     '''
+    utils.check.goin()
+
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
 
     N, c_in, h_in, w_in = input.shape
@@ -50,6 +54,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
                 feature_map = signal.convolve2d(image, f, mode = 'valid')
                 output[n][co] = output[n][co] + feature_map
 
+    utils.check.out_conv_for()
     return output
 
     # pass
@@ -75,6 +80,7 @@ def conv2d_backward(input, grad_output, W, b, kernel_size, pad):
     naive implement
     '''
 
+    utils.check.goin()
     N, c_in, h_in, w_in = input.shape
     c_out = W.shape[0]
     k = W.shape[2]
@@ -114,6 +120,7 @@ def conv2d_backward(input, grad_output, W, b, kernel_size, pad):
                 # to calculate the gradient of b
                 grad_b[co] = grad_b[co] + np.sum(fm)
 
+    utils.check.out_conv_bac()
     return grad_input, grad_W, grad_b
     # pass
 
@@ -133,10 +140,12 @@ def avgpool2d_forward(input, kernel_size, pad):
         h_out = (h_in + pad * 2) / kernel_size
         w_out = (w_in + pad * 2) / kernel_size
     '''
+    utils.check.goin()
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     k = kernel_size
     output = skimage.measure.block_reduce(input, (1, 1, k, k), np.mean)
-    print output.shape
+    # print output.shape
+    utils.check.out_pool_for()
     return output
     # pass
 
@@ -152,16 +161,25 @@ def avgpool2d_backward(input, grad_output, kernel_size, pad):
     Returns:
         grad_input: gradient of input, shape = n (#sample) x c_in (#input channel) x h_in (#height) x w_in (#width)
     '''
-    output = np.zeros(shape = input.shape)
-    N = input.shape[0]
-    c_in = input.shape[1]
+    utils.check.goin()
+    # output = np.zeros(shape = input.shape)
+    # N = input.shape[0]
+    # c_in = input.shape[1]
+    k = kernel_size
+    output = grad_output.repeat(k, axis = 2).repeat(k, axis = 3)
+    if pad > 0:
+    	output = output[:, :, pad: -pad, pad: -pad]
+    output = output / (k * k)
+    '''
     for n in range(N):
         for c in range(c_in):
             temp = scipy.ndimage.zoom(grad_output[n][c], kernel_size, order=0) / (kernel_size * kernel_size)
             if pad > 0:
                 temp = temp[pad: -pad, pad: -pad]
             output[n][c] = temp
+    '''
 
+    utils.check.out_pool_bac()
     return output
 
     # pass
