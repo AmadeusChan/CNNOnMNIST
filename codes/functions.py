@@ -4,6 +4,8 @@ from scipy import signal
 import skimage.measure
 import scipy.ndimage
 from skimage.util import view_as_windows as viewW
+import utils
+import im2colfun
 
 def im2col(input, k_x, k_y):
     c_in, h_in, w_in = input.shape
@@ -11,11 +13,9 @@ def im2col(input, k_x, k_y):
     w_out = w_in - k_y + 1
     result = np.ndarray(shape = (0, h_out * w_out))
     for c in range(c_in):
-        temp = viewW(input[c], (k_x, k_y)).reshape(-1, k_x * k_y).T
+    	temp = viewW(input[c], (k_x, k_y)).reshape(-1, k_x * k_y).T
         result = np.append(result, temp, axis = 0)
     return result
-
-import utils
 
 def conv(input, W):
     
