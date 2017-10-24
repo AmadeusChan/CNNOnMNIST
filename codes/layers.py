@@ -24,10 +24,12 @@ class Layer(object):
 class Relu(Layer):
     def __init__(self, name):
         super(Relu, self).__init__(name)
+	self.output = np.ndarray(1)
 
     def forward(self, input):
         self._saved_for_backward(input)
-        return np.maximum(0, input)
+	self.output = np.maximum(0, input)
+	return self.output
 
     def backward(self, grad_output):
         input = self._saved_tensor
