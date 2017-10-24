@@ -3,6 +3,20 @@ from scipy import signal
 
 import skimage.measure
 import scipy.ndimage
+from skimage.util import view_as_windows as viewW
+
+def im2col_sliding_strided_v2(A, BSZ, stepsize=1):
+    return viewW(A, (BSZ[0],BSZ[1])).reshape(-1,BSZ[0]*BSZ[1]).T[:,::stepsize]
+
+def im2col(input, k):
+    c_in, h_in, w_in = input.shape
+    h_out = h_in - k + 1
+    w_out = w_in - k + 1
+    result = np.ndarray(shape = (0, h_out * w_out))
+    for c in range(c_in):
+        temp = im2col_sliding_strided_v2(input[c], [k, k])
+        result = np.append(result, temp, axis = 0)
+    return result
 
 def conv2d_forward(input, W, b, kernel_size, pad):
     '''
@@ -22,7 +36,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
         w_out = w_in + 2 x pad - kernel + 1
     '''
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
-    print input
+    # print input
 
     N, c_in, h_in, w_in = input.shape
     c_out = W.shape[0]
@@ -42,6 +56,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
     '''
     naive implement
     '''
+    '''
     for n in range(N):
         for co in range(c_out):
             output[n][co] = output[n][co] + b[co]
@@ -50,6 +65,21 @@ def conv2d_forward(input, W, b, kernel_size, pad):
                 f = np.rot90(W[co][ci], 2)
                 feature_map = signal.convolve2d(image, f, mode = 'valid')
                 output[n][co] = output[n][co] + feature_map
+
+    return output
+    '''
+    '''
+    faster implement with im2col
+    '''
+
+    W = W.reshape(c_out, c_in * k * k) # of shape c_out x (c_in x k x k)
+    for n in range(N):
+        image = input[n] 
+        image = im2col(image, k) # now of shape (c_in x k x k) x (h_out x w_out)
+        fm = np.dot(W, image) # of shape c_out x (h_out x w_out)
+        output[n] = fm.reshape(c_out, h_out, w_out)
+        for c in range(c_out):
+            output[n][c] = output[n][c] + b[c]
 
     return output
 
@@ -137,7 +167,7 @@ def avgpool2d_forward(input, kernel_size, pad):
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     k = kernel_size
     output = skimage.measure.block_reduce(input, (1, 1, k, k), np.mean)
-    print output.shape
+    # print output.shape
     return output
     # pass
 
