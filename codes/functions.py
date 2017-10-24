@@ -5,15 +5,43 @@ import skimage.measure
 import scipy.ndimage
 from skimage.util import view_as_windows as viewW
 
-def im2col(input, k):
-    c_in, N, h_in, w_in = input.shape
-    h_out = h_in - k + 1
-    w_out = w_in - k + 1
+def im2col(input, k_x, k_y):
+    c_in, h_in, w_in = input.shape
+    h_out = h_in - k_x + 1
+    w_out = w_in - k_y + 1
     result = np.ndarray(shape = (0, h_out * w_out))
     for c in range(c_in):
-        temp = viewW(input[c], (k, k)).reshape(-1, k * k).T
+        temp = viewW(input[c], (k_x, k_y)).reshape(-1, k_x * k_y).T
         result = np.append(result, temp, axis = 0)
     return result
+
+import utils
+
+def conv(input, W):
+    
+    c_out = W.shape[0]
+    c_in = W.shape[1]
+    k_x = W.shape[2]
+    k_y = W.shape[3]
+    N = input.shape[0]
+    h_in = input.shape[2]
+    w_in = input.shape[3]
+    h_out = h_in - k_x + 1
+    w_out = w_in - k_y + 1
+
+    output = np.zeros(shape = (N, c_out, h_out, w_out))
+
+    W = W.reshape(c_out, c_in * k_x * k_y) # of shape c_out x (c_in x k x k)
+
+    for n in range(N):
+        image = input[n] 
+        image = im2col(image, k_x, k_y) # now of shape (c_in x k x k) x (h_out x w_out)
+        fm = np.dot(W, image) # of shape c_out x (h_out x w_out)
+        output[n] = fm.reshape(c_out, h_out, w_out)
+        for c in range(c_out):
+            output[n][c] = output[n][c] 
+
+    return output
 
 def conv2d_forward(input, W, b, kernel_size, pad):
     '''
@@ -32,6 +60,8 @@ def conv2d_forward(input, W, b, kernel_size, pad):
         h_out = h_in + 2 x pad - kernel + 1
         w_out = w_in + 2 x pad - kernel + 1
     '''
+    utils.check.goin()
+
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     # print input
 
@@ -46,7 +76,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
 
     # print h_out, ' ', w_out,' ',h_in,' ',w_in
     
-    output = np.zeros(shape = (N, c_out, h_out, w_out))
+    # output = np.zeros(shape = (N, c_out, h_out, w_out))
 
     # print output.shape
 
@@ -63,21 +93,28 @@ def conv2d_forward(input, W, b, kernel_size, pad):
                 feature_map = signal.convolve2d(image, f, mode = 'valid')
                 output[n][co] = output[n][co] + feature_map
 
+    utils.check.out_conv_for()
     return output
     '''
     '''
     faster implement with im2col
     '''
 
+    '''
     W = W.reshape(c_out, c_in * k * k) # of shape c_out x (c_in x k x k)
+
     for n in range(N):
         image = input[n] 
         image = im2col(image, k) # now of shape (c_in x k x k) x (h_out x w_out)
         fm = np.dot(W, image) # of shape c_out x (h_out x w_out)
         output[n] = fm.reshape(c_out, h_out, w_out)
         for c in range(c_out):
-            output[n][c] = output[n][c] + b[c]
+            output[n][c] = output[n][c] 
+    '''
 
+    output = conv(input, W)
+    output = output + b.reshape(1, c_out, 1, 1).repeat(h_out, axis = 2).repeat(w_out, axis = 3).repeat(N, axis = 0)
+    utils.check.out_conv_for()
     return output
 
     # pass
@@ -103,6 +140,7 @@ def conv2d_backward(input, grad_output, W, b, kernel_size, pad):
     naive implement
     '''
 
+    utils.check.goin()
     N, c_in, h_in, w_in = input.shape
     c_out = W.shape[0]
     k = W.shape[2]
@@ -113,35 +151,22 @@ def conv2d_backward(input, grad_output, W, b, kernel_size, pad):
     grad_W = np.zeros(shape = (c_out, c_in, k, k))
     grad_b = np.zeros(c_out)
 
-    for n in range(N):
-        for ci in range(c_in):
-            image = input[n][ci]
-            for co in range(c_out):
-                # to calculate grad_input
-                fm = grad_output[n][co]
-                f = W[co][ci]
-                temp = signal.convolve2d(fm, f, mode = 'full')
+    grad_out = grad_output
 
-                '''
-                print fm.shape
-                print f.shape
-                print temp.shape, ' ', pad
-                '''
-                if (pad > 0):
-                     temp = temp[pad:-pad, pad:-pad]
-                '''
-                print temp.shape
-                '''
+    kernel = kernel_size
+    grad_out = np.lib.pad(grad_out, ((0, 0), (0, 0), (kernel - 1, kernel - 1), (kernel - 1, kernel - 1)), 'constant')
+    W = np.rot90(W, 2, axes = (2, 3))
+    W = W.transpose(1, 0, 2, 3)
 
-                grad_input[n][ci] = grad_input[n][ci] + temp
+    grad_input = conv(grad_out, W)
+    if pad > 0:
+        grad_input = grad_input[:, :, pad: -pad, pad: -pad]
+    
+    grad_W = conv(input.transpose(1, 0, 2, 3), grad_output.transpose(1, 0, 2, 3)).transpose(1, 0, 2, 3)
+    grad_b = np.sum(grad_output, axis = (0, 2, 3))
 
-                # to calculate the gradient of W
-                temp = signal.convolve2d(image, np.rot90(fm, 2), mode = 'valid')
-                grad_W[co][ci] = grad_W[co][ci] + temp
-
-                # to calculate the gradient of b
-                grad_b[co] = grad_b[co] + np.sum(fm)
-
+    utils.check.out_conv_bac()
+   
     return grad_input, grad_W, grad_b
     # pass
 
@@ -161,10 +186,12 @@ def avgpool2d_forward(input, kernel_size, pad):
         h_out = (h_in + pad * 2) / kernel_size
         w_out = (w_in + pad * 2) / kernel_size
     '''
+    utils.check.goin()
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     k = kernel_size
     output = skimage.measure.block_reduce(input, (1, 1, k, k), np.mean)
     # print output.shape
+    utils.check.out_pool_for()
     return output
     # pass
 
@@ -180,16 +207,25 @@ def avgpool2d_backward(input, grad_output, kernel_size, pad):
     Returns:
         grad_input: gradient of input, shape = n (#sample) x c_in (#input channel) x h_in (#height) x w_in (#width)
     '''
-    output = np.zeros(shape = input.shape)
-    N = input.shape[0]
-    c_in = input.shape[1]
+    utils.check.goin()
+    # output = np.zeros(shape = input.shape)
+    # N = input.shape[0]
+    # c_in = input.shape[1]
+    k = kernel_size
+    output = grad_output.repeat(k, axis = 2).repeat(k, axis = 3)
+    if pad > 0:
+    	output = output[:, :, pad: -pad, pad: -pad]
+    output = output / (k * k)
+    '''
     for n in range(N):
         for c in range(c_in):
             temp = scipy.ndimage.zoom(grad_output[n][c], kernel_size, order=0) / (kernel_size * kernel_size)
             if pad > 0:
                 temp = temp[pad: -pad, pad: -pad]
             output[n][c] = temp
+    '''
 
+    utils.check.out_pool_bac()
     return output
 
     # pass
