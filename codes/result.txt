@@ -1,0 +1,108 @@
+[?25l[J[J[J[J[J[J[?12l[?25h[?1049h[?1h=[1;52r[?12;25h[?12l[?25h[27m[24m[0m[H[2J[?25l[52;1H"run_cnn.py" 66L, 2193C[1;1Hfrom network import Network
+from layers import Relu, Linear, Conv2D, AvgPool2D, Reshape
+from utils import LOG_INFO
+from loss import EuclideanLoss, SoftmaxCrossEntropyLoss
+from solve_net import train_net, test_net
+from load_data import load_mnist_4d
+train_data, test_data, train_label, test_label = load_mnist_4d('data')
+
+# Your model defintion here
+# You should explore different model architecture
+model = Network()
+
+model.add(Conv2D('conv1', 1, 4, 5, 2, 1)) # output shape: N x 4 x 28 x 28
+model.add(Relu('relu1'))
+model.add(AvgPool2D('pool1', 2, 0))  # output shape: N x 4 x 14 x 14
+model.add(Conv2D('conv2', 4, 8, 5, 0, 1)) # output shape: N x 8 x 10 x 10
+model.add(Relu('relu2'))
+model.add(AvgPool2D('pool2', 2, 0))  # output shape: N x 8 x 5 x 5
+model.add(Reshape('flatten', (-1, 200)))
+model.add(Linear('fc3', 200, 10, 0.1))
+
+'''
+# input: N x 1 x 28 x 28
+model.add(Conv2D('conv1', 1, 4, 5, 1, 0.01)) # output shape: N x 4 x 26 x 26
+model.add(Relu('relu1'))
+
+model.add(Conv2D('conv1', 4, 1, 5, 0, 0.01)) # output shape: N x 1 x 22 x 22
+model.add(Relu('relu1'))
+
+model.add(Reshape('flatten', (-1, 484)))
+
+model.add(Linear('fc3', 484, 10, 0.1))
+'''
+
+'''
+model.add(Reshape('flatten', (-1, 784)))
+model.add(Linear('fc3', 784, 300, 0.1))
+model.add(Relu('relu2'))
+model.add(Linear('fc3', 300, 10, 0.1))
+'''
+
+loss = SoftmaxCrossEntropyLoss(name='loss')
+
+# Training configuration
+# You should adjust these hyperparameters
+# NOTE: one iteration means model forward-backwards one batch of samples.
+#[7Cone epoch means model has gone through all the training samples.
+#[7C'disp_freq' denotes number of iterations in one epoch to display information.
+
+config = {
+    'learning_rate': 0.1,[1;1H[?12l[?25h
+
+
+
+[?25l[52;1HType  :quit<Enter>  to exit Vim[5;1H[?12l[?25h[?25l[?12l[?25h[52;1H
+[?1l>[?1049l[?1049h[?1h=[?12;25h[?12l[?25h[27m[24m[0m[H[2J[?25l[1;1Hfrom network import Network
+from layers import Relu, Linear, Conv2D, AvgPool2D, Reshape
+from utils import LOG_INFO
+from loss import EuclideanLoss, SoftmaxCrossEntropyLoss
+from solve_net import train_net, test_net
+from load_data import load_mnist_4d
+train_data, test_data, train_label, test_label = load_mnist_4d('data')
+
+# Your model defintion here
+# You should explore different model architecture
+model = Network()
+
+model.add(Conv2D('conv1', 1, 4, 5, 2, 1)) # output shape: N x 4 x 28 x 28
+model.add(Relu('relu1'))
+model.add(AvgPool2D('pool1', 2, 0))  # output shape: N x 4 x 14 x 14
+model.add(Conv2D('conv2', 4, 8, 5, 0, 1)) # output shape: N x 8 x 10 x 10
+model.add(Relu('relu2'))
+model.add(AvgPool2D('pool2', 2, 0))  # output shape: N x 8 x 5 x 5
+model.add(Reshape('flatten', (-1, 200)))
+model.add(Linear('fc3', 200, 10, 0.1))
+
+'''
+# input: N x 1 x 28 x 28
+model.add(Conv2D('conv1', 1, 4, 5, 1, 0.01)) # output shape: N x 4 x 26 x 26
+model.add(Relu('relu1'))
+
+model.add(Conv2D('conv1', 4, 1, 5, 0, 0.01)) # output shape: N x 1 x 22 x 22
+model.add(Relu('relu1'))
+
+model.add(Reshape('flatten', (-1, 484)))
+
+model.add(Linear('fc3', 484, 10, 0.1))
+'''
+
+'''
+model.add(Reshape('flatten', (-1, 784)))
+model.add(Linear('fc3', 784, 300, 0.1))
+model.add(Relu('relu2'))
+model.add(Linear('fc3', 300, 10, 0.1))
+'''
+
+loss = SoftmaxCrossEntropyLoss(name='loss')
+
+# Training configuration
+# You should adjust these hyperparameters
+# NOTE: one iteration means model forward-backwards one batch of samples.
+#[7Cone epoch means model has gone through all the training samples.
+#[7C'disp_freq' denotes number of iterations in one epoch to display information.
+
+config = {
+    'learning_rate': 0.1,[5;1H[?12l[?25h[52;1H[?1l>[?1049lVim: Caught deadly signal TERM
+Vim: Finished.
+[52;1H

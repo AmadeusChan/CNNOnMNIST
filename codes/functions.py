@@ -3,8 +3,48 @@ from scipy import signal
 
 import skimage.measure
 import scipy.ndimage
+from skimage.util import view_as_windows as viewW
+
+def im2col_sliding_strided_v2(A, BSZ, stepsize=1):
+    return viewW(A, (BSZ[0],BSZ[1])).reshape(-1,BSZ[0]*BSZ[1]).T[:,::stepsize]
+
+def im2col(input, k_x, k_y):
+    c_in, h_in, w_in = input.shape
+    h_out = h_in - k_x + 1
+    w_out = w_in - k_y + 1
+    result = np.ndarray(shape = (0, h_out * w_out))
+    for c in range(c_in):
+        temp = im2col_sliding_strided_v2(input[c], [k_x, k_y])
+        result = np.append(result, temp, axis = 0)
+    return result
 
 import utils
+
+def conv(input, W):
+    
+    c_out = W.shape[0]
+    c_in = W.shape[1]
+    k_x = W.shape[2]
+    k_y = W.shape[3]
+    N = input.shape[0]
+    h_in = input.shape[2]
+    w_in = input.shape[3]
+    h_out = h_in - k_x + 1
+    w_out = w_in - k_y + 1
+
+    output = np.zeros(shape = (N, c_out, h_out, w_out))
+
+    W = W.reshape(c_out, c_in * k_x * k_y) # of shape c_out x (c_in x k x k)
+
+    for n in range(N):
+        image = input[n] 
+        image = im2col(image, k_x, k_y) # now of shape (c_in x k x k) x (h_out x w_out)
+        fm = np.dot(W, image) # of shape c_out x (h_out x w_out)
+        output[n] = fm.reshape(c_out, h_out, w_out)
+        for c in range(c_out):
+            output[n][c] = output[n][c] 
+
+    return output
 
 def conv2d_forward(input, W, b, kernel_size, pad):
     '''
@@ -26,6 +66,7 @@ def conv2d_forward(input, W, b, kernel_size, pad):
     utils.check.goin()
 
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+    # print input
 
     N, c_in, h_in, w_in = input.shape
     c_out = W.shape[0]
@@ -38,12 +79,13 @@ def conv2d_forward(input, W, b, kernel_size, pad):
 
     # print h_out, ' ', w_out,' ',h_in,' ',w_in
     
-    output = np.zeros(shape = (N, c_out, h_out, w_out))
+    # output = np.zeros(shape = (N, c_out, h_out, w_out))
 
     # print output.shape
 
     '''
     naive implement
+    '''
     '''
     for n in range(N):
         for co in range(c_out):
@@ -54,6 +96,27 @@ def conv2d_forward(input, W, b, kernel_size, pad):
                 feature_map = signal.convolve2d(image, f, mode = 'valid')
                 output[n][co] = output[n][co] + feature_map
 
+    utils.check.out_conv_for()
+    return output
+    '''
+    '''
+    faster implement with im2col
+    '''
+
+    '''
+    W = W.reshape(c_out, c_in * k * k) # of shape c_out x (c_in x k x k)
+
+    for n in range(N):
+        image = input[n] 
+        image = im2col(image, k) # now of shape (c_in x k x k) x (h_out x w_out)
+        fm = np.dot(W, image) # of shape c_out x (h_out x w_out)
+        output[n] = fm.reshape(c_out, h_out, w_out)
+        for c in range(c_out):
+            output[n][c] = output[n][c] 
+    '''
+
+    output = conv(input, W)
+    output = output + b.reshape(1, c_out, 1, 1).repeat(h_out, axis = 2).repeat(w_out, axis = 3).repeat(N, axis = 0)
     utils.check.out_conv_for()
     return output
 
@@ -91,36 +154,22 @@ def conv2d_backward(input, grad_output, W, b, kernel_size, pad):
     grad_W = np.zeros(shape = (c_out, c_in, k, k))
     grad_b = np.zeros(c_out)
 
-    for n in range(N):
-        for ci in range(c_in):
-            image = input[n][ci]
-            for co in range(c_out):
-                # to calculate grad_input
-                fm = grad_output[n][co]
-                f = W[co][ci]
-                temp = signal.convolve2d(fm, f, mode = 'full')
+    grad_out = grad_output
 
-                '''
-                print fm.shape
-                print f.shape
-                print temp.shape, ' ', pad
-                '''
-                if (pad > 0):
-                     temp = temp[pad:-pad, pad:-pad]
-                '''
-                print temp.shape
-                '''
+    kernel = kernel_size
+    grad_out = np.lib.pad(grad_out, ((0, 0), (0, 0), (kernel - 1, kernel - 1), (kernel - 1, kernel - 1)), 'constant')
+    W = np.rot90(W, 2, axes = (2, 3))
+    W = W.transpose(1, 0, 2, 3)
 
-                grad_input[n][ci] = grad_input[n][ci] + temp
-
-                # to calculate the gradient of W
-                temp = signal.convolve2d(image, np.rot90(fm, 2), mode = 'valid')
-                grad_W[co][ci] = grad_W[co][ci] + temp
-
-                # to calculate the gradient of b
-                grad_b[co] = grad_b[co] + np.sum(fm)
+    grad_input = conv(grad_out, W)
+    if pad > 0:
+        grad_input = grad_input[:, :, pad: -pad, pad: -pad]
+    
+    grad_W = conv(input.transpose(1, 0, 2, 3), grad_output.transpose(1, 0, 2, 3)).transpose(1, 0, 2, 3)
+    grad_b = np.sum(grad_output, axis = (0, 2, 3))
 
     utils.check.out_conv_bac()
+   
     return grad_input, grad_W, grad_b
     # pass
 

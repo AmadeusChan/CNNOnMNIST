@@ -49,7 +49,7 @@ loss = SoftmaxCrossEntropyLoss(name='loss')
 
 config = {
     'learning_rate': 0.1,
-    'weight_decay': 0.0,
+    'weight_decay': 0.00001,
     'momentum': 0.0,
     'batch_size': 100,
     'max_epoch': 100,
