@@ -8,6 +8,7 @@ import numpy as np
 import time
 import os
 import json
+import sys
 
 train_data, test_data, train_label, test_label = load_mnist_4d('data')
 # train_data = train_data + np.random.randn(*train_data.shape) * 0.01
@@ -60,13 +61,47 @@ config = {
     'weight_decay': 0,
     'momentum': 0.0,
     'batch_size': 50,
-    'max_epoch': 100,
+    'max_epoch': 30,
     'disp_freq': 50,
     'test_epoch': 1
 }
 
-acc_file = "test_result.txt"
-loss_file = "train_result.txt"
+acc_file = "btest_result.txt"
+loss_file = "btrain_result.txt"
+
+weight_file = "bweight.json"
+bias_file = "bbias.json"
+output_file = "boutput.json"
+
+da_flag = False
+
+cnt = 1
+while cnt + 1 < len(sys.argv):
+    opt = sys.argv[cnt]
+    con = sys.argv[cnt + 1]
+    cnt = cnt + 2
+    if opt == "-lr":
+        config['learning_rate'] = float(con)
+	weight_file = "lr" + con + weight_file
+	bias_file = "lr" + con + bias_file
+	output_file = "lr" + con + output_file
+    elif opt == '-wd':
+        config['weight_decay'] == float(con)
+	weight_file = "wd" + con + weight_file
+	bias_file = "wd" + con + bias_file
+	output_file = "wd" + con + output_file
+    elif opt == '-bs':
+        config['batch size'] == int(con)
+	weight_file = "bs" + con + weight_file
+	bias_file = "bs" + con + bias_file
+	output_file = "bs" + con + output_file
+    elif opt == '-test':
+        acc_file == con
+    elif opt == '-train':
+        loss_file == con
+    elif opt == '-da':
+        if con == 'on':
+	    da_flag = True
 
 os.system("rm " + acc_file)
 os.system("touch " + acc_file)
@@ -77,17 +112,17 @@ for epoch in range(config['max_epoch']):
     LOG_INFO('Training @ %d epoch...' % (epoch))
 
     lw = conv1.W.tolist()
-    with open('weight.json', 'w') as f:
+    with open(weight_file, 'w') as f:
     	json.dump(lw, f)
 
     lb = conv1.b.tolist()
-    with open('bias.json', 'w') as f:
+    with open(bias_file, 'w') as f:
     	json.dump(lb, f)
 
     train_net(model, loss, config, train_data, train_label, config['batch_size'], config['disp_freq'], loss_file)
 
     lo = relu1.output.tolist()
-    with open('output.json', 'w') as f:
+    with open(output_file, 'w') as f:
     	json.dump(lo, f)
 
     if epoch % config['test_epoch'] == 0:
