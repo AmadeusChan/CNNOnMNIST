@@ -9,7 +9,7 @@ import time
 import os
 import json
 import sys
-from scipy import misc
+from scipy import misc, ndimage
 
 train_data, test_data, train_label, test_label = load_mnist_4d('data')
 # train_data = train_data + np.random.randn(*train_data.shape) * 0.01
@@ -62,7 +62,7 @@ config = {
     'weight_decay': 0.0001,
     'momentum': 0.0,
     'batch_size': 50,
-    'max_epoch': 200,
+    'max_epoch': 500,
     'disp_freq': 50,
     'test_epoch': 1
 }
@@ -113,6 +113,7 @@ print config
 print acc_file
 print loss_file
 
+
 # data augmentation
 if da_flag:
     temp_data = train_data.copy()
@@ -120,7 +121,7 @@ if da_flag:
 
     N = train_data.shape[0]
     
-    for i in range(1):
+    for i in range(3):
         train_data = np.append(train_data, temp_data, axis=0)
         train_label = np.append(train_label, temp_label, axis=0)
     
@@ -129,6 +130,14 @@ if da_flag:
         image = misc.imrotate(train_data[n][0], 10*np.random.randn()) / 255.0
         train_data[n][0] = image
         
+    for n in range(2*N, 3*N):
+    	train_data[n][0] = train_data[n][0] + np.random.randn()
+	train_data[n][0] = train_data[n][0] + np.random.randn(*train_data[n][0].shape) * 0.01
+
+    for n in range(3*N, 4*N):
+	image = train_data[n][0]
+        image = ndimage.shift(misc.imrotate(image, np.random.randn()), (np.random.randn() * 2, np.random.randn() * 2) ) / 255.0
+        train_data[n][0] = image
     
 os.system("rm " + acc_file)
 os.system("touch " + acc_file)
