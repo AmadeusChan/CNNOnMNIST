@@ -7,6 +7,35 @@ from skimage.util import view_as_windows as viewW
 import utils
 import im2colfun
 
+import numpy as np
+def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):
+  # First figure out what the size of the output should be
+  N, C, H, W = x_shape
+  assert (H + 2 * padding - field_height) % stride == 0
+  assert (W + 2 * padding - field_height) % stride == 0
+  out_height = (H + 2 * padding - field_height) / stride + 1
+  out_width = (W + 2 * padding - field_width) / stride + 1
+  i0 = np.repeat(np.arange(field_height), field_width)
+  i0 = np.tile(i0, C)
+  i1 = stride * np.repeat(np.arange(out_height), out_width)
+  j0 = np.tile(np.arange(field_width), field_height * C)
+  j1 = stride * np.tile(np.arange(out_width), out_height)
+  i = i0.reshape(-1, 1) + i1.reshape(1, -1)
+  j = j0.reshape(-1, 1) + j1.reshape(1, -1)
+  k = np.repeat(np.arange(C), field_height * field_width).reshape(-1, 1)
+  return (k, i, j)
+
+def im2col_indices(x, field_height, field_width, padding=0, stride=1):
+  """ An implementation of im2col based on some fancy indexing """
+  # Zero-pad the input
+  p = padding
+  x_padded = np.pad(x, ((0, 0), (0, 0), (p, p), (p, p)), mode='constant')
+  k, i, j = get_im2col_indices(x.shape, field_height, field_width, padding, stride)
+  cols = x_padded[:, k, i, j]
+  C = x.shape[1]
+  cols = cols.transpose(1, 2, 0).reshape(field_height * field_width * C, -1)
+  return cols
+
 def im2col_sliding_strided(A, BSZ):
     # Parameters
     m,n = A.shape
@@ -19,19 +48,51 @@ def im2col_sliding_strided(A, BSZ):
     out_view = np.lib.stride_tricks.as_strided(A, shape=shp, strides=strd)
     return out_view.reshape(BSZ[0]*BSZ[1],-1)
 
+def im2col_each(x,hh,ww,stride=1):
+
+    """
+    Args:
+      x: image matrix to be translated into columns, (C,H,W)
+      hh: filter height
+      ww: filter width
+      stride: stride
+    Returns:
+      col: (new_h*new_w,hh*ww*C) matrix, each column is a cube that will convolve with a filter
+            new_h = (H-hh) // stride + 1, new_w = (W-ww) // stride + 1
+    """
+
+    c,h,w = x.shape
+    new_h = (h-hh) // stride + 1
+    new_w = (w-ww) // stride + 1
+    col = np.zeros([new_h*new_w,c*hh*ww])
+
+    for i in range(new_h):
+       for j in range(new_w):
+           patch = x[...,i*stride:i*stride+hh,j*stride:j*stride+ww]
+           col[i*new_w+j,:] = np.reshape(patch,-1)
+    return col
+
 def im2col(input, k_x, k_y):
     c_in, h_in, w_in = input.shape
     h_out = h_in - k_x + 1
     w_out = w_in - k_y + 1
+ 
+    return im2col_indices(input.reshape(1, c_in, h_in, w_in), k_x, k_y)
+
+    # return im2col_each(input, k_x, k_y).transpose(1, 0)
+
     result = np.ndarray(shape = (0, h_out * w_out))
     for c in range(c_in):
     	# temp = viewW(input[c], (k_x, k_y)).reshape(-1, k_x * k_y).T
         temp = im2col_sliding_strided(input[c], [k_x, k_y])
+        # temp = im2col_each(input[c], k_x, k_y)
         result = np.append(result, temp, axis = 0)
     return result
 
 def conv(input, W):
     
+    # utils.check.goin()
+
     c_out = W.shape[0]
     c_in = W.shape[1]
     k_x = W.shape[2]
@@ -45,6 +106,28 @@ def conv(input, W):
     output = np.zeros(shape = (N, c_out, h_out, w_out))
 
     W = W.reshape(c_out, c_in * k_x * k_y) # of shape c_out x (c_in x k x k)
+    
+    image = im2col_indices(input, k_x, k_y)
+    output = np.dot(W, image)
+    return output.reshape(c_out, N, h_out, w_out).reshape(c_out, h_out, w_out, N).transpose(3, 0, 1, 2)
+
+    '''
+    image = input.transpose(1, 0, 2, 3)
+    image = image.reshape(c_in, N * h_in, w_in)
+
+    image = np.lib.pad(image, ((0, 0), (0, k_x - 1), (0, 0)), 'constant')
+
+    # utils.check.out_conv_for();
+    image = im2col(image, k_x, k_y)
+    output = np.dot(W, image)
+    output = output.reshape(c_out, N * h_in, w_out)
+    output = output.reshape(c_out, N, h_in, w_out)
+    if k_x > 1:
+        output = output[:, :, :-(k_x - 1) , :]
+    # print output.shape
+    return output.transpose(1, 0, 2, 3)
+    '''
+
 
     for n in range(N):
         image = input[n] 
@@ -73,8 +156,8 @@ def conv2d_forward(input, W, b, kernel_size, pad):
         h_out = h_in + 2 x pad - kernel + 1
         w_out = w_in + 2 x pad - kernel + 1
     '''
-    utils.check.goin()
 
+    utils.check.goin()
     input = np.lib.pad(input, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     # print input
 
@@ -93,22 +176,6 @@ def conv2d_forward(input, W, b, kernel_size, pad):
 
     # print output.shape
 
-    '''
-    naive implement
-    '''
-    '''
-    for n in range(N):
-        for co in range(c_out):
-            output[n][co] = output[n][co] + b[co]
-            for ci in range(c_in):
-                image = input[n][ci]
-                f = np.rot90(W[co][ci], 2)
-                feature_map = signal.convolve2d(image, f, mode = 'valid')
-                output[n][co] = output[n][co] + feature_map
-
-    utils.check.out_conv_for()
-    return output
-    '''
     '''
     faster implement with im2col
     '''
