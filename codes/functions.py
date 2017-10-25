@@ -9,6 +9,7 @@ import im2colfun
 
 import numpy as np
 
+# the im2col function is from https://github.com/yunjey/cs231n/tree/master/assignment2/cs231n
 try:
   from im2col_cython import col2im_cython, im2col_cython
   from im2col_cython import col2im_6d_cython

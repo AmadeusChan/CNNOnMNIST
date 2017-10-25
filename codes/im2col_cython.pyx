@@ -1,3 +1,5 @@
+# from: https://github.com/yunjey/cs231n/tree/master/assignment2/cs231n
+
 import numpy as np
 cimport numpy as np
 cimport cython
