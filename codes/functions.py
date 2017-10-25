@@ -8,6 +8,15 @@ import utils
 import im2colfun
 
 import numpy as np
+
+try:
+  from im2col_cython import col2im_cython, im2col_cython
+  from im2col_cython import col2im_6d_cython
+except ImportError:
+  print 'run the following from the cs231n directory and try again:'
+  print 'python setup.py build_ext --inplace'
+  print 'You may also need to restart your iPython kernel'
+
 def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):
   # First figure out what the size of the output should be
   N, C, H, W = x_shape
@@ -107,7 +116,8 @@ def conv(input, W):
 
     W = W.reshape(c_out, c_in * k_x * k_y) # of shape c_out x (c_in x k x k)
     
-    image = im2col_indices(input, k_x, k_y)
+    # image = im2col_indices(input, k_x, k_y)
+    image = im2col_cython(input, k_x, k_y, 0, 1)
     output = np.dot(W, image)
     return output.reshape(c_out, N, h_out, w_out).reshape(c_out, h_out, w_out, N).transpose(3, 0, 1, 2)
 
