@@ -77,9 +77,11 @@ output_file = "boutput.json"
 da_flag = False
 
 cnt = 1
+print sys.argv
 while cnt + 1 < len(sys.argv):
     opt = sys.argv[cnt]
     con = sys.argv[cnt + 1]
+    print opt, ' ', con
     cnt = cnt + 2
     if opt == "-lr":
         config['learning_rate'] = float(con)
@@ -87,25 +89,29 @@ while cnt + 1 < len(sys.argv):
 	bias_file = "lr" + con + bias_file
 	output_file = "lr" + con + output_file
     elif opt == '-wd':
-        config['weight_decay'] == float(con)
+        config['weight_decay'] = float(con)
 	weight_file = "wd" + con + weight_file
 	bias_file = "wd" + con + bias_file
 	output_file = "wd" + con + output_file
     elif opt == '-bs':
-        config['batch_size'] == int(con)
+        config['batch_size'] = int(con)
 	weight_file = "bs" + con + weight_file
 	bias_file = "bs" + con + bias_file
 	output_file = "bs" + con + output_file
     elif opt == '-test':
-        acc_file == con
+        acc_file = con
     elif opt == '-train':
-        loss_file == con
+        loss_file = con
     elif opt == '-da':
         if con == 'on':
 	    weight_file = "da" + con + weight_file
 	    bias_file = "da" + con + bias_file
 	    output_file = "da" + con + output_file
 	    da_flag = True
+
+print config
+print acc_file
+print loss_file
 
 # data augmentation
 if da_flag:
