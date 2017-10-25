@@ -62,7 +62,7 @@ config = {
     'weight_decay': 0,
     'momentum': 0.0,
     'batch_size': 50,
-    'max_epoch': 15,
+    'max_epoch': 10,
     'disp_freq': 50,
     'test_epoch': 1
 }
