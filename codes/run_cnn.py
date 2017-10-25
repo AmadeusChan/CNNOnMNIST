@@ -18,16 +18,16 @@ train_data, test_data, train_label, test_label = load_mnist_4d('data')
 # You should explore different model architecture
 model = Network()
 
-conv1 = Conv2D('conv1', 1, 2, 5, 0, 1) # output shape: N x 4 x 24 x 24
+conv1 = Conv2D('conv1', 1, 4, 5, 0, 1) # output shape: N x 4 x 24 x 24
 model.add(conv1)
 relu1 = Relu('relu1')
 model.add(relu1)
 model.add(AvgPool2D('pool1', 2, 0))  # output shape: N x 4 x 12 x 12
-model.add(Conv2D('conv2', 2, 8, 5, 0, 1)) # output shape: N x 4 x 8 x 8
+model.add(Conv2D('conv2', 4, 16, 5, 0, 1)) # output shape: N x 4 x 8 x 8
 model.add(Relu('relu2'))
-model.add(AvgPool2D('pool2', 2, 0))  # output shape: N x 4 x 4 x 4
-model.add(Reshape('flatten', (-1, 128)))
-model.add(Linear('fc3', 128, 10, 0.1))
+model.add(AvgPool2D('pool2', 2, 0))  # output shape: N x 16 x 4 x 4
+model.add(Reshape('flatten', (-1, 256)))
+model.add(Linear('fc3', 256, 10, 0.1))
 
 '''
 # input: N x 1 x 28 x 28
@@ -59,10 +59,10 @@ loss = SoftmaxCrossEntropyLoss(name='loss')
 
 config = {
     'learning_rate': 0.1,
-    'weight_decay': 0,
+    'weight_decay': 0.0001,
     'momentum': 0.0,
     'batch_size': 50,
-    'max_epoch': 30,
+    'max_epoch': 200,
     'disp_freq': 50,
     'test_epoch': 1
 }
