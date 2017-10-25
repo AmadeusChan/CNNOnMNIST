@@ -9,6 +9,7 @@ import time
 import os
 import json
 import sys
+from scipy import misc
 
 train_data, test_data, train_label, test_label = load_mnist_4d('data')
 # train_data = train_data + np.random.randn(*train_data.shape) * 0.01
@@ -61,7 +62,7 @@ config = {
     'weight_decay': 0,
     'momentum': 0.0,
     'batch_size': 50,
-    'max_epoch': 30,
+    'max_epoch': 15,
     'disp_freq': 50,
     'test_epoch': 1
 }
@@ -91,7 +92,7 @@ while cnt + 1 < len(sys.argv):
 	bias_file = "wd" + con + bias_file
 	output_file = "wd" + con + output_file
     elif opt == '-bs':
-        config['batch size'] == int(con)
+        config['batch_size'] == int(con)
 	weight_file = "bs" + con + weight_file
 	bias_file = "bs" + con + bias_file
 	output_file = "bs" + con + output_file
@@ -101,8 +102,28 @@ while cnt + 1 < len(sys.argv):
         loss_file == con
     elif opt == '-da':
         if con == 'on':
+	    weight_file = "da" + con + weight_file
+	    bias_file = "da" + con + bias_file
+	    output_file = "da" + con + output_file
 	    da_flag = True
 
+# data augmentation
+if da_flag:
+    temp_data = train_data.copy()
+    temp_label = train_label.copy()
+
+    N = train_data.shape[0]
+    
+    for i in range(1):
+        train_data = np.append(train_data, temp_data, axis=0)
+        train_label = np.append(train_label, temp_label, axis=0)
+    
+    for n in range(N, 2*N):
+        # image = np.reshape(train_data[n], (28, 28))
+        image = misc.imrotate(train_data[n][0], 10*np.random.randn()) / 255.0
+        train_data[n][0] = image
+        
+    
 os.system("rm " + acc_file)
 os.system("touch " + acc_file)
 os.system("rm " + loss_file)
