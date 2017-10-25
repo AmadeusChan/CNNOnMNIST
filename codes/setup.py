@@ -1,4 +1,4 @@
-https://github.com/yunjey/cs231n/tree/master/assignment2/cs231n
+# https://github.com/yunjey/cs231n/tree/master/assignment2/cs231n
 
 from distutils.core import setup
 from distutils.extension import Extension
