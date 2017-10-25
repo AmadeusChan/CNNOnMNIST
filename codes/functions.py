@@ -7,7 +7,7 @@ from skimage.util import view_as_windows as viewW
 import utils
 import im2colfun
 
-def im2col_sliding_strided(A, BSZ, stepsize=1):
+def im2col_sliding_strided(A, BSZ):
     # Parameters
     m,n = A.shape
     s0, s1 = A.strides
@@ -17,7 +17,7 @@ def im2col_sliding_strided(A, BSZ, stepsize=1):
     strd = s0,s1,s0,s1
 
     out_view = np.lib.stride_tricks.as_strided(A, shape=shp, strides=strd)
-    return out_view.reshape(BSZ[0]*BSZ[1],-1)[:,::stepsize]
+    return out_view.reshape(BSZ[0]*BSZ[1],-1)
 
 def im2col(input, k_x, k_y):
     c_in, h_in, w_in = input.shape
